@@ -68,11 +68,22 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void OnCreateGameSession();
 
+	UFUNCTION(BlueprintCallable)
+	void OnJoinGameSession();
+
 	IOnlineSessionPtr OnlineSessionInterface;
 
 	FDelegateHandle OnCreateSessionHandle;
 	FOnCreateSessionCompleteDelegate OnCreateSessionCompleteDelegate;
-
 	void OnCreateSessionComplete(FName SessionName, bool bWasSuccessful);
+
+	TSharedPtr<FOnlineSessionSearch> SessionSearch;
+	FDelegateHandle OnFindSessionHandle;
+	FOnFindSessionsCompleteDelegate OnFindSessionsCompleteDelegate;
+	void OnFindSessionsComplete(bool bWasSuccessful);
+
+	FDelegateHandle OnJoinSessionHandle;
+	FOnJoinSessionCompleteDelegate OnJoinSessionCompleteDelegate;
+	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type bWasSuccessful);
 };
 

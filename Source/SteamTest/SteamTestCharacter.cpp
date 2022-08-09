@@ -16,7 +16,9 @@
 
 ASteamTestCharacter::ASteamTestCharacter()
 	:
-	OnCreateSessionCompleteDelegate(FOnCreateSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnCreateSessionComplete))
+	OnCreateSessionCompleteDelegate(FOnCreateSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnCreateSessionComplete)),
+	OnFindSessionsCompleteDelegate(FOnFindSessionsCompleteDelegate::CreateUObject(this, &ThisClass::OnFindSessionsComplete)),
+	OnJoinSessionCompleteDelegate(FOnJoinSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnJoinSessionComplete))
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -196,6 +198,30 @@ void ASteamTestCharacter::OnCreateGameSession()
 	}
 }
 
+void ASteamTestCharacter::OnJoinGameSession()
+{
+	if (OnlineSessionInterface.IsValid())
+	{
+		// 清空Handle列表
+		if (OnFindSessionHandle.IsValid())
+		{
+			OnlineSessionInterface->ClearOnFindSessionsCompleteDelegate_Handle(OnFindSessionHandle);
+		}
+
+		// 增加到Handle列表
+		OnFindSessionHandle = OnlineSessionInterface->AddOnFindSessionsCompleteDelegate_Handle(OnFindSessionsCompleteDelegate);
+
+		// 创建SessionSearch
+		SessionSearch = MakeShareable(new FOnlineSessionSearch());
+		SessionSearch->bIsLanQuery = false;
+		SessionSearch->MaxSearchResults = 100;
+		SessionSearch->QuerySettings.Set(SEARCH_PRESENCE, true, EOnlineComparisonOp::Equals);
+
+		// 搜索Session
+		OnlineSessionInterface->FindSessions(*GetWorld()->GetFirstLocalPlayerFromController()->GetPreferredUniqueNetId(), SessionSearch.ToSharedRef());
+	}
+}
+
 void ASteamTestCharacter::OnCreateSessionComplete(FName SessionName, bool bWasSuccessful)
 {
 	if (bWasSuccessful)
@@ -209,6 +235,12 @@ void ASteamTestCharacter::OnCreateSessionComplete(FName SessionName, bool bWasSu
 				FString::Printf(TEXT("CreateSession: %s"), *SessionName.ToString())
 			);
 		}
+
+		// Server Travel
+		if (UWorld* World = GetWorld())
+		{
+			World->ServerTravel("/Game/ThirdPerson/Maps/Lobby?listen");
+		}
 	}
 	else
 	{
@@ -220,6 +252,96 @@ void ASteamTestCharacter::OnCreateSessionComplete(FName SessionName, bool bWasSu
 				FColor::Red,
 				FString("CreateSession Failed!")
 			);
+		}
+	}
+}
+
+void ASteamTestCharacter::OnFindSessionsComplete(bool bWasSuccessful)
+{
+	if (OnlineSessionInterface.IsValid())
+	{
+		if (bWasSuccessful && SessionSearch.IsValid())
+		{
+			// 遍历找到的Session
+			for (const FOnlineSessionSearchResult& Result: SessionSearch->SearchResults)
+			{
+				FString Id = Result.GetSessionIdStr();
+				FString User = Result.Session.OwningUserName;
+				FString MatchType;
+				Result.Session.SessionSettings.Get(FName("MatchType"), MatchType);
+				if (GEngine)
+				{
+					GEngine->AddOnScreenDebugMessage(
+						-1,
+						15.0f,
+						FColor::Cyan,
+						FString::Printf(TEXT("Id: %s, User: %s, MatchType: %s"), *Id, *User, *MatchType)
+					);
+				}
+
+				if (MatchType == "FreeForAll")
+				{
+					if (GEngine)
+					{
+						GEngine->AddOnScreenDebugMessage(
+							-1,
+							15.0f,
+							FColor::Yellow,
+							FString("Find \"FreeForAll\", Join it")
+						);
+					}
+
+					// 清空Handle列表
+					if (OnJoinSessionHandle.IsValid())
+					{
+						OnlineSessionInterface->ClearOnJoinSessionCompleteDelegate_Handle(OnJoinSessionHandle);
+					}
+
+					// 增加到Handle列表
+					OnJoinSessionHandle = OnlineSessionInterface->AddOnJoinSessionCompleteDelegate_Handle(OnJoinSessionCompleteDelegate);
+
+					// 加入Session
+					OnlineSessionInterface->JoinSession(*GetWorld()->GetFirstLocalPlayerFromController()->GetPreferredUniqueNetId(), NAME_GameSession, Result);
+					return;
+				}
+			}
+		}
+		else
+		{
+			if (GEngine)
+			{
+				GEngine->AddOnScreenDebugMessage(
+					-1,
+					15.0f,
+					FColor::Red,
+					FString("Find Session Failed!")
+				);
+			}
+		}
+	}
+}
+
+void ASteamTestCharacter::OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type bWasSuccessful)
+{
+	if (OnlineSessionInterface.IsValid())
+	{
+		FString Address;
+		if (OnlineSessionInterface->GetResolvedConnectString(SessionName, Address))
+		{
+			if (GEngine)
+			{
+				GEngine->AddOnScreenDebugMessage(
+					-1,
+					15.0f,
+					FColor::Yellow,
+					FString::Printf(TEXT("Connect Address: %s"), *Address)
+				);
+			}
+
+			if (APlayerController* PlayerController = GetGameInstance()->GetFirstLocalPlayerController())
+			{
+				PlayerController->ClientTravel(Address, ETravelType::TRAVEL_Absolute);
+			}
 		}
 	}
 }
