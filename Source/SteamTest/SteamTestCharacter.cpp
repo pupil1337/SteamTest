@@ -1,6 +1,9 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "SteamTestCharacter.h"
+
+#include "OnlineSessionSettings.h"
+#include "OnlineSubsystem.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
@@ -12,6 +15,8 @@
 // ASteamTestCharacter
 
 ASteamTestCharacter::ASteamTestCharacter()
+	:
+	OnCreateSessionCompleteDelegate(FOnCreateSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnCreateSessionComplete))
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -49,6 +54,22 @@ ASteamTestCharacter::ASteamTestCharacter()
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
+
+	/* ========================================================= */
+	if (const IOnlineSubsystem* OnlineSubsystem = IOnlineSubsystem::Get())
+	{
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				15.0f,
+				FColor::Blue,
+				FString::Printf(TEXT("OnlineSubsystem is: %s"), *OnlineSubsystem->GetSubsystemName().ToString())
+			);
+		}
+		
+		OnlineSessionInterface = OnlineSubsystem->GetSessionInterface();
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -125,5 +146,80 @@ void ASteamTestCharacter::MoveRight(float Value)
 		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 		// add movement in that direction
 		AddMovementInput(Direction, Value);
+	}
+}
+
+/* ========================================================= */
+
+void ASteamTestCharacter::OnCreateGameSession()
+{
+	if (OnlineSessionInterface.IsValid())
+	{
+		// 是否已经创建
+		if (OnlineSessionInterface->GetNamedSession(NAME_GameSession))
+		{
+			OnlineSessionInterface->DestroySession(NAME_GameSession);
+			if (GEngine)
+			{
+				GEngine->AddOnScreenDebugMessage(
+					-1,
+					15.0f,
+					FColor::Yellow,
+					FString("Session is Created, now Destroy, please Create again")
+				);
+			}
+			return;
+		}
+
+		// 清空Handel
+		if (OnCreateSessionHandle.IsValid())
+		{
+			OnlineSessionInterface->ClearOnCreateSessionCompleteDelegate_Handle(OnCreateSessionHandle);
+		}
+		
+		// 增加到Handle列表
+		OnCreateSessionHandle = OnlineSessionInterface->AddOnCreateSessionCompleteDelegate_Handle(OnCreateSessionCompleteDelegate);
+
+		// Session设置
+		const TSharedPtr<FOnlineSessionSettings> SessionSettings = MakeShareable(new FOnlineSessionSettings());
+		SessionSettings->bIsLANMatch = false;
+		SessionSettings->bShouldAdvertise = true;
+		SessionSettings->NumPublicConnections = 8;
+		SessionSettings->bAllowJoinInProgress = true;
+		SessionSettings->bAllowJoinViaPresence = true;
+		SessionSettings->bUsesPresence = true;
+		SessionSettings->bUseLobbiesIfAvailable = true;
+		SessionSettings->Set(FName("MatchType"), FString("FreeForAll"), EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
+
+		// 创建Session
+		OnlineSessionInterface->CreateSession(*GetWorld()->GetFirstLocalPlayerFromController()->GetPreferredUniqueNetId(), NAME_GameSession, *SessionSettings.ToSharedRef());
+	}
+}
+
+void ASteamTestCharacter::OnCreateSessionComplete(FName SessionName, bool bWasSuccessful)
+{
+	if (bWasSuccessful)
+	{
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				15.0f,
+				FColor::Blue,
+				FString::Printf(TEXT("CreateSession: %s"), *SessionName.ToString())
+			);
+		}
+	}
+	else
+	{
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				15.0f,
+				FColor::Red,
+				FString("CreateSession Failed!")
+			);
+		}
 	}
 }
