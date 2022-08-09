@@ -1,0 +1,13 @@
+# Project
+Binaries
+Content/Collections
+Content/Developers
+DerivedDataCache
+Intermediate
+Plugins/Developer
+Saved
+
+# IDE
+.idea
+.vs
+SteamTest.sln
