@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-#include "Interfaces/OnlineSessionInterface.h"
 #include "SteamTestCharacter.generated.h"
 
 UCLASS(config=Game)
@@ -62,28 +61,5 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
-
-	/* ========================================================= */
-protected:
-	UFUNCTION(BlueprintCallable)
-	void OnCreateGameSession();
-
-	UFUNCTION(BlueprintCallable)
-	void OnJoinGameSession();
-
-	IOnlineSessionPtr OnlineSessionInterface;
-
-	FDelegateHandle OnCreateSessionHandle;
-	FOnCreateSessionCompleteDelegate OnCreateSessionCompleteDelegate;
-	void OnCreateSessionComplete(FName SessionName, bool bWasSuccessful);
-
-	TSharedPtr<FOnlineSessionSearch> SessionSearch;
-	FDelegateHandle OnFindSessionHandle;
-	FOnFindSessionsCompleteDelegate OnFindSessionsCompleteDelegate;
-	void OnFindSessionsComplete(bool bWasSuccessful);
-
-	FDelegateHandle OnJoinSessionHandle;
-	FOnJoinSessionCompleteDelegate OnJoinSessionCompleteDelegate;
-	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type bWasSuccessful);
 };
 
