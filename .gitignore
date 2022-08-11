@@ -1,13 +1,13 @@
 # Project
-Binaries
-Content/Collections
-Content/Developers
-DerivedDataCache
-Intermediate
-Plugins/Developer
-Saved
+Binaries/
+Intermediate/
+Saved/
+/Content/Collections
+/Content/Developers
+/Plugins/Developer
+/DerivedDataCache
 
 # IDE
 .idea
 .vs
-SteamTest.sln
+/SteamTest.sln
