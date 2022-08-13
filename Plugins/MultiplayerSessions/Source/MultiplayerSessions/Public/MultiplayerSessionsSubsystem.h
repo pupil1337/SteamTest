@@ -3,10 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "OnlineSessionSettings.h"
-#include "interfaces/OnlineSessionInterface.h"
 #include "Subsystems/GameInstanceSubsystem.h"
+#include "interfaces/OnlineSessionInterface.h"
 #include "MultiplayerSessionsSubsystem.generated.h"
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FMultiplayerSessionsOnCreateSessionComplete, FName, bool)
+DECLARE_MULTICAST_DELEGATE_TwoParams(FMultiplayerSessionsOnStartSessionComplete, FName, bool)
+DECLARE_MULTICAST_DELEGATE_TwoParams(FMultiplayerSessionsOnDestroySessionComplete, FName, bool)
+DECLARE_MULTICAST_DELEGATE_TwoParams(FMultiplayerSessionsOnFindSessionsComplete, const TArray<FOnlineSessionSearchResult>&, bool)
+DECLARE_MULTICAST_DELEGATE_TwoParams(FMultiplayerSessionsOnJoinSessionComplete, FName, EOnJoinSessionCompleteResult::Type)
 
 /**
  * 
@@ -20,22 +25,31 @@ public:
 	UMultiplayerSessionsSubsystem();
 
 	// 外部调用事件
-	void CreateSession(const FOnlineSessionSettings& OnlineSessionSettings);
+	void CreateSession();
 	void StartSession();
 	void DestroySession();
 	void FindSessions(int32 MaxSearchResults);
 	void JoinSession(const FOnlineSessionSearchResult& Result);
-	
+
+	// Session回调函数中所需调用代理
+	FMultiplayerSessionsOnCreateSessionComplete MultiplayerSessionsOnCreateSessionComplete;
+	FMultiplayerSessionsOnStartSessionComplete MultiplayerSessionsOnStartSessionComplete;
+	FMultiplayerSessionsOnDestroySessionComplete MultiplayerSessionsOnDestroySessionComplete;
+	FMultiplayerSessionsOnFindSessionsComplete MultiplayerSessionsOnFindSessionsComplete;
+	FMultiplayerSessionsOnJoinSessionComplete MultiplayerSessionsOnJoinSessionComplete;
+
 protected:
-	// Session操作的回调函数
-	void OnCreateSessionComplete(FName SessionName, bool bWasSuccessful);
-	void OnStartSessionComplete(FName SessionName, bool bWasSuccessful);
-	void OnDestroySessionComplete(FName SessionName, bool bWasSuccessful);
-	void OnFindSessionsComplete(bool bWasSuccessful);
-	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type bWasSuccessful);
+	// Session事件的回调函数
+	void OnCreateSessionComplete(FName SessionName, bool bWasSuccessful) const;
+	void OnStartSessionComplete(FName SessionName, bool bWasSuccessful) const;
+	void OnDestroySessionComplete(FName SessionName, bool bWasSuccessful) const;
+	void OnFindSessionsComplete(bool bWasSuccessful) const;
+	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type bWasSuccessful) const;
 	
 private:
 	IOnlineSessionPtr OnlineSessionInterface;
+	TSharedPtr<FOnlineSessionSettings> OnlineSessionSettings;
+	TSharedPtr<FOnlineSessionSearch> OnlineSessionSearch;
 
 	// 需要添加到Session代理列表的代理和其句柄
 	FOnCreateSessionCompleteDelegate  CreateSessionCompleteDelegate;

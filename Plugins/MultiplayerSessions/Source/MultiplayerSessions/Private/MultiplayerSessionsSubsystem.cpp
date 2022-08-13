@@ -3,6 +3,7 @@
 
 #include "MultiplayerSessionsSubsystem.h"
 
+#include "OnlineSessionSettings.h"
 #include "OnlineSubsystem.h"
 
 UMultiplayerSessionsSubsystem::UMultiplayerSessionsSubsystem()
@@ -14,7 +15,7 @@ UMultiplayerSessionsSubsystem::UMultiplayerSessionsSubsystem()
 	FindSessionsCompleteDelegate(FOnFindSessionsCompleteDelegate::CreateUObject(this, &ThisClass::OnFindSessionsComplete)),
 	JoinSessionCompleteDelegate(FOnJoinSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnJoinSessionComplete))
 {
-	if (IOnlineSubsystem* OnlineSubsystem = IOnlineSubsystem::Get())
+	if (const IOnlineSubsystem* OnlineSubsystem = IOnlineSubsystem::Get())
 	{
 		OnlineSessionInterface = OnlineSubsystem->GetSessionInterface();
 
@@ -32,8 +33,33 @@ UMultiplayerSessionsSubsystem::UMultiplayerSessionsSubsystem()
 
 /* --public-- ========================================================================*/
 
-void UMultiplayerSessionsSubsystem::CreateSession(const FOnlineSessionSettings& OnlineSessionSettings)
+void UMultiplayerSessionsSubsystem::CreateSession()
 {
+	if (OnlineSessionInterface)
+	{
+		// 销毁已经创建的Session
+		if (OnlineSessionInterface->GetNamedSession(NAME_GameSession))
+		{
+			OnlineSessionInterface->DestroySession(NAME_GameSession, DestroySessionCompleteDelegate);
+		}
+
+		// 添加到代理列表
+		CreateSessionCompleteDelegateHandle = OnlineSessionInterface->AddOnCreateSessionCompleteDelegate_Handle(CreateSessionCompleteDelegate);
+
+		// SessionSettings和创建Session
+		OnlineSessionSettings = MakeShareable(new FOnlineSessionSettings);
+		OnlineSessionSettings->bIsLANMatch = IOnlineSubsystem::Get()->GetSubsystemName() == "NULL" ? true : false;
+		OnlineSessionSettings->NumPublicConnections = 4;
+		OnlineSessionSettings->bAllowJoinInProgress = true;
+		OnlineSessionSettings->bAllowJoinViaPresence = true;
+		OnlineSessionSettings->bUsesPresence = true;
+		OnlineSessionSettings->bShouldAdvertise = true;
+		OnlineSessionSettings->Set(FName("MatchType"), FString("PupilTest"), EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
+		if (!OnlineSessionInterface->CreateSession(*GetWorld()->GetFirstLocalPlayerFromController()->GetPreferredUniqueNetId(), NAME_GameSession, *OnlineSessionSettings))
+		{
+			OnlineSessionInterface->ClearOnCreateSessionCompleteDelegate_Handle(CreateSessionCompleteDelegateHandle);
+		}
+	}
 }
 
 void UMultiplayerSessionsSubsystem::StartSession()
@@ -54,22 +80,27 @@ void UMultiplayerSessionsSubsystem::JoinSession(const FOnlineSessionSearchResult
 
 /* --protected-- ========================================================================*/
 
-void UMultiplayerSessionsSubsystem::OnCreateSessionComplete(FName SessionName, bool bWasSuccessful)
+void UMultiplayerSessionsSubsystem::OnCreateSessionComplete(FName SessionName, bool bWasSuccessful) const
 {
+	MultiplayerSessionsOnCreateSessionComplete.Broadcast(SessionName, bWasSuccessful);
 }
 
-void UMultiplayerSessionsSubsystem::OnStartSessionComplete(FName SessionName, bool bWasSuccessful)
+void UMultiplayerSessionsSubsystem::OnStartSessionComplete(FName SessionName, bool bWasSuccessful) const
 {
+	MultiplayerSessionsOnStartSessionComplete.Broadcast(SessionName, bWasSuccessful);
 }
 
-void UMultiplayerSessionsSubsystem::OnDestroySessionComplete(FName SessionName, bool bWasSuccessful)
+void UMultiplayerSessionsSubsystem::OnDestroySessionComplete(FName SessionName, bool bWasSuccessful) const
 {
+	MultiplayerSessionsOnDestroySessionComplete.Broadcast(SessionName, bWasSuccessful);
 }
 
-void UMultiplayerSessionsSubsystem::OnFindSessionsComplete(bool bWasSuccessful)
+void UMultiplayerSessionsSubsystem::OnFindSessionsComplete(bool bWasSuccessful) const
 {
+	MultiplayerSessionsOnFindSessionsComplete.Broadcast(OnlineSessionSearch.IsValid() ? OnlineSessionSearch->SearchResults : TArray<FOnlineSessionSearchResult>(), bWasSuccessful);
 }
 
-void UMultiplayerSessionsSubsystem::OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type bWasSuccessful)
+void UMultiplayerSessionsSubsystem::OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type bWasSuccessful) const
 {
+	MultiplayerSessionsOnJoinSessionComplete.Broadcast(SessionName, bWasSuccessful);
 }
