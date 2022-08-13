@@ -18,6 +18,12 @@ bool UMultiplayerSessionsMenu::Initialize()
 	return false;
 }
 
+void UMultiplayerSessionsMenu::OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld)
+{
+	TearDownMenu();
+	Super::OnLevelRemovedFromWorld(InLevel, InWorld);
+}
+
 void UMultiplayerSessionsMenu::BindButton()
 {
 	if (Button_Host)
@@ -58,12 +64,21 @@ void UMultiplayerSessionsMenu::SetUpMenu()
 	}
 }
 
-void UMultiplayerSessionsMenu::OnHostButtonClicked()
+void UMultiplayerSessionsMenu::TearDownMenu()
 {
-	
+	if (const UWorld* World = GetWorld())
+	{
+		if (APlayerController* PlayerController = World->GetFirstPlayerController())
+		{
+			const FInputModeGameOnly InputModeGameOnly;
+
+			PlayerController->SetInputMode(InputModeGameOnly);
+			PlayerController->SetShowMouseCursor(false);
+		}
+	}
 }
 
-void UMultiplayerSessionsMenu::OnJoinButtonClicked()
+void UMultiplayerSessionsMenu::OnHostButtonClicked()
 {
 	if (MultiplayerSessionsSubsystem)
 	{
@@ -71,7 +86,12 @@ void UMultiplayerSessionsMenu::OnJoinButtonClicked()
 
 		if (UWorld* World = GetWorld())
 		{
-			//World->ServerTravel()
+			World->ServerTravel("/MultiplayerSessions/MultiplayerSessionsMap_Lobby?listen");
 		}
-	}	
+	}
+}
+
+void UMultiplayerSessionsMenu::OnJoinButtonClicked()
+{
+	
 }

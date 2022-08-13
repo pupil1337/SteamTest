@@ -25,10 +25,12 @@ class MULTIPLAYERSESSIONS_API UMultiplayerSessionsMenu : public UUserWidget
 
 public:
 	virtual bool Initialize() override;
+	virtual void OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld) override;
 
 private:
 	void BindButton();
 	void SetUpMenu();
+	void TearDownMenu();
 
 	UFUNCTION()
 	void OnHostButtonClicked();
