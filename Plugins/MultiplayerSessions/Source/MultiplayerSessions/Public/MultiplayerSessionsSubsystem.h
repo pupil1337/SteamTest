@@ -7,11 +7,22 @@
 #include "interfaces/OnlineSessionInterface.h"
 #include "MultiplayerSessionsSubsystem.generated.h"
 
-DECLARE_MULTICAST_DELEGATE_TwoParams(FMultiplayerSessionsOnCreateSessionComplete, FName, bool)
-DECLARE_MULTICAST_DELEGATE_TwoParams(FMultiplayerSessionsOnStartSessionComplete, FName, bool)
-DECLARE_MULTICAST_DELEGATE_TwoParams(FMultiplayerSessionsOnDestroySessionComplete, FName, bool)
-DECLARE_MULTICAST_DELEGATE_TwoParams(FMultiplayerSessionsOnFindSessionsComplete, const TArray<FOnlineSessionSearchResult>&, bool)
-DECLARE_MULTICAST_DELEGATE_TwoParams(FMultiplayerSessionsOnJoinSessionComplete, FName, EOnJoinSessionCompleteResult::Type)
+DECLARE_MULTICAST_DELEGATE_OneParam(FMultiplayerSessionsOnCreateSessionComplete, bool bWasSuccessful)
+DECLARE_MULTICAST_DELEGATE_OneParam(FMultiplayerSessionsOnStartSessionComplete, bool bWasSuccessful)
+DECLARE_MULTICAST_DELEGATE_OneParam(FMultiplayerSessionsOnDestroySessionComplete, bool bWasSuccessful)
+DECLARE_MULTICAST_DELEGATE_TwoParams(FMultiplayerSessionsOnFindSessionsComplete, const TArray<FOnlineSessionSearchResult>& Results, bool bWasSuccessful)
+DECLARE_MULTICAST_DELEGATE_TwoParams(FMultiplayerSessionsOnJoinSessionComplete, EOnJoinSessionCompleteResult::Type Result, FString Address)
+
+#define  ScreenLog( ParamFString ) \
+	if (GEngine) \
+	{ \
+		GEngine->AddOnScreenDebugMessage( \
+			-1, \
+			15.0f, \
+			FColor::Blue, \
+			ParamFString \
+		); \
+	}
 
 /**
  * 
@@ -26,6 +37,7 @@ public:
 
 	// 外部调用事件
 	void CreateSession();
+	UFUNCTION(BlueprintCallable)
 	void StartSession();
 	void DestroySession();
 	void FindSessions(int32 MaxSearchResults);
@@ -37,14 +49,17 @@ public:
 	FMultiplayerSessionsOnDestroySessionComplete MultiplayerSessionsOnDestroySessionComplete;
 	FMultiplayerSessionsOnFindSessionsComplete MultiplayerSessionsOnFindSessionsComplete;
 	FMultiplayerSessionsOnJoinSessionComplete MultiplayerSessionsOnJoinSessionComplete;
+	
+	UFUNCTION(BlueprintCallable)
+	void DebugMultiplayerSession(int Type);
 
 protected:
 	// Session事件的回调函数
 	void OnCreateSessionComplete(FName SessionName, bool bWasSuccessful);
-	void OnStartSessionComplete(FName SessionName, bool bWasSuccessful) const;
-	void OnDestroySessionComplete(FName SessionName, bool bWasSuccessful) const;
-	void OnFindSessionsComplete(bool bWasSuccessful) const;
-	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type bWasSuccessful) const;
+	void OnStartSessionComplete(FName SessionName, bool bWasSuccessful);
+	void OnDestroySessionComplete(FName SessionName, bool bWasSuccessful);
+	void OnFindSessionsComplete(bool bWasSuccessful);
+	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type bWasSuccessful);
 	
 private:
 	IOnlineSessionPtr OnlineSessionInterface;
@@ -52,14 +67,14 @@ private:
 	TSharedPtr<FOnlineSessionSearch> OnlineSessionSearch;
 
 	// 需要添加到Session代理列表的代理和其句柄
-	FOnCreateSessionCompleteDelegate  CreateSessionCompleteDelegate;
+	FOnCreateSessionCompleteDelegate CreateSessionCompleteDelegate;
 	FDelegateHandle CreateSessionCompleteDelegateHandle;
-	FOnStartSessionCompleteDelegate   StartSessionCompleteDelegate;
+	FOnStartSessionCompleteDelegate StartSessionCompleteDelegate;
 	FDelegateHandle StartSessionCompleteDelegateHandle;
 	FOnDestroySessionCompleteDelegate DestroySessionCompleteDelegate;
 	FDelegateHandle DestroySessionCompleteDelegateHandle;
 	FOnFindSessionsCompleteDelegate FindSessionsCompleteDelegate;
 	FDelegateHandle FindSessionsCompleteDelegateHandle;
-	FOnJoinSessionCompleteDelegate    JoinSessionCompleteDelegate;
+	FOnJoinSessionCompleteDelegate JoinSessionCompleteDelegate;
 	FDelegateHandle JoinSessionCompleteDelegateHandle;
 };

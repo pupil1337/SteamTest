@@ -5,6 +5,7 @@
 
 #include "Components/Button.h"
 #include "MultiplayerSessionsSubsystem.h"
+#include "OnlineSessionSettings.h"
 
 bool UMultiplayerSessionsMenu::Initialize()
 {
@@ -66,10 +67,14 @@ void UMultiplayerSessionsMenu::SetUpMenu()
 	if (MultiplayerSessionsSubsystem)
 	{
 		MultiplayerSessionsSubsystem->MultiplayerSessionsOnCreateSessionComplete.AddUObject(this, &ThisClass::OnCreateSessionComplete);
+		MultiplayerSessionsSubsystem->MultiplayerSessionsOnStartSessionComplete.AddUObject(this, &ThisClass::OnStartSessionComplete);
+		MultiplayerSessionsSubsystem->MultiplayerSessionsOnDestroySessionComplete.AddUObject(this, &ThisClass::OnDestroySessionComplete);
+		MultiplayerSessionsSubsystem->MultiplayerSessionsOnFindSessionsComplete.AddUObject(this, &ThisClass::OnFindSessionsComplete);
+		MultiplayerSessionsSubsystem->MultiplayerSessionsOnJoinSessionComplete.AddUObject(this, &ThisClass::OnJoinSessionComplete);
 	}
 }
 
-void UMultiplayerSessionsMenu::TearDownMenu()
+void UMultiplayerSessionsMenu::TearDownMenu() const
 {
 	if (const UWorld* World = GetWorld())
 	{
@@ -93,26 +98,71 @@ void UMultiplayerSessionsMenu::OnHostButtonClicked()
 
 void UMultiplayerSessionsMenu::OnJoinButtonClicked()
 {
-	
+	if (MultiplayerSessionsSubsystem)
+	{
+		MultiplayerSessionsSubsystem->FindSessions(10000);
+	}
 }
 
-void UMultiplayerSessionsMenu::OnCreateSessionComplete(FName SessionName, bool bWasSuccessful)
+void UMultiplayerSessionsMenu::OnCreateSessionComplete(bool bWasSuccessful)
 {
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(
-			-1,
-			15.0f,
-			FColor::Blue,
-			FString::Printf(TEXT("Create Success: %hs, SessionName: %s"), bWasSuccessful ? "true" : "false", *SessionName.ToString())
-		);
-	}
+	ScreenLog(FString::Printf(TEXT("Create Success: %hs"), bWasSuccessful ? "true" : "false"))
 
+	// todo: 创建Session之后Session处于Pending状态,StartSession()完成后才是InProgress状态,不应当此时跳转地图
 	if (bWasSuccessful)
 	{
 		if (UWorld* World = GetWorld())
 		{
 			World->ServerTravel("/MultiplayerSessions/MultiplayerSessionsMap_Lobby?listen");
 		}
+	}
+}
+
+void UMultiplayerSessionsMenu::OnStartSessionComplete(bool bWasSuccessful)
+{
+}
+
+void UMultiplayerSessionsMenu::OnDestroySessionComplete(bool bWasSuccessful)
+{
+}
+
+void UMultiplayerSessionsMenu::OnFindSessionsComplete(const TArray<FOnlineSessionSearchResult>& Results, bool bWasSuccessful)
+{
+	if (bWasSuccessful)
+	{
+		ScreenLog(FString(TEXT("FindSessions Num: %d, we only join PupilTest"), Results.Num()))
+		if (MultiplayerSessionsSubsystem)
+		{
+			for (const FOnlineSessionSearchResult& Result: Results)
+			{
+				// todo: 手动选择想加入的Session
+				FString MatchType;
+				Result.Session.SessionSettings.Get(FName("MatchType"), MatchType);
+				if (MatchType == "PupilTest")
+				{
+					MultiplayerSessionsSubsystem->JoinSession(Result);
+					return;
+				}
+			}
+		}
+	}
+	else
+	{
+		ScreenLog(FString("FindSessions Failed!"))
+	}
+}
+
+void UMultiplayerSessionsMenu::OnJoinSessionComplete(EOnJoinSessionCompleteResult::Type Result, FString Address)
+{
+	if (Result == EOnJoinSessionCompleteResult::Success)
+	{
+		if (APlayerController* PlayerController = GetWorld()->GetFirstPlayerController())
+		{
+			PlayerController->ClientTravel(Address, ETravelType::TRAVEL_Absolute);
+		}
+	}
+	else
+	{
+		ScreenLog(FString(TEXT("JoinSession Failed! -- %d"), static_cast<uint32>(Result)))
 	}
 }

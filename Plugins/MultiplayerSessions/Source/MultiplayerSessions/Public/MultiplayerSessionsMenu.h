@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "interfaces/OnlineSessionInterface.h"
 #include "MultiplayerSessionsMenu.generated.h"
 
 class UButton;
@@ -32,14 +33,18 @@ protected:
 private:
 	void BindButton();
 	void SetUpMenu();
-	void TearDownMenu();
+	void TearDownMenu() const;
 
 	UFUNCTION()
 	void OnHostButtonClicked();
 	UFUNCTION()
 	void OnJoinButtonClicked();
 
-	void OnCreateSessionComplete(FName SessionName, bool bWasSuccessful);
+	void OnCreateSessionComplete(bool bWasSuccessful);
+	void OnStartSessionComplete(bool bWasSuccessful);
+	void OnDestroySessionComplete(bool bWasSuccessful);
+	void OnFindSessionsComplete(const TArray<FOnlineSessionSearchResult>& Results, bool bWasSuccessful);
+	void OnJoinSessionComplete(EOnJoinSessionCompleteResult::Type Result, FString Address);
 
 	UPROPERTY()
 	UMultiplayerSessionsSubsystem* MultiplayerSessionsSubsystem;
