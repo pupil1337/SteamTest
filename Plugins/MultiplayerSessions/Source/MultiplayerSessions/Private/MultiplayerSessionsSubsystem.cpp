@@ -32,12 +32,15 @@ void UMultiplayerSessionsSubsystem::CreateSession()
 		// 销毁已经创建的Session
 		if (OnlineSessionInterface->GetNamedSession(NAME_GameSession))
 		{
-			OnlineSessionInterface->DestroySession(NAME_GameSession, DestroySessionCompleteDelegate);
+			bCreateSessionAfterDestroyed = true;
+			DestroySession();
+			return;
 		}
 
 		// 添加到代理列表
 		CreateSessionCompleteDelegateHandle = OnlineSessionInterface->AddOnCreateSessionCompleteDelegate_Handle(CreateSessionCompleteDelegate);
 
+		// todo: 从UI设置Settings
 		// SessionSettings和创建Session
 		OnlineSessionSettings = MakeShareable(new FOnlineSessionSettings);
 		OnlineSessionSettings->bIsLANMatch = IOnlineSubsystem::Get()->GetSubsystemName() == "NULL" ? true : false;
@@ -75,6 +78,17 @@ void UMultiplayerSessionsSubsystem::StartSession()
 
 void UMultiplayerSessionsSubsystem::DestroySession()
 {
+	if (OnlineSessionInterface.IsValid())
+	{
+		DestroySessionCompleteDelegateHandle = OnlineSessionInterface->AddOnDestroySessionCompleteDelegate_Handle(DestroySessionCompleteDelegate);
+
+		if (!OnlineSessionInterface->DestroySession(NAME_GameSession))
+		{
+			OnlineSessionInterface->ClearOnDestroySessionCompleteDelegate_Handle(DestroySessionCompleteDelegateHandle);
+
+			MultiplayerSessionsOnDestroySessionComplete.Broadcast(false);
+		}
+	}
 }
 
 void UMultiplayerSessionsSubsystem::FindSessions(int32 MaxSearchResults)
@@ -140,6 +154,17 @@ void UMultiplayerSessionsSubsystem::OnStartSessionComplete(FName SessionName, bo
 
 void UMultiplayerSessionsSubsystem::OnDestroySessionComplete(FName SessionName, bool bWasSuccessful)
 {
+	if (OnlineSessionInterface.IsValid())
+	{
+		OnlineSessionInterface->ClearOnDestroySessionCompleteDelegate_Handle(DestroySessionCompleteDelegateHandle);
+	}
+
+	if (bWasSuccessful && bCreateSessionAfterDestroyed)
+	{
+		bCreateSessionAfterDestroyed = false;
+		CreateSession();
+	}
+	
 	MultiplayerSessionsOnDestroySessionComplete.Broadcast(bWasSuccessful);
 }
 
@@ -176,8 +201,6 @@ void UMultiplayerSessionsSubsystem::DebugMultiplayerSession(int Type)
 		case 1:
 			ScreenLog(FString("Session State: ") + EOnlineSessionState::ToString(OnlineSessionInterface->GetSessionState(NAME_GameSession)))
 			break;
-		case 2:
-			ScreenLog(FString(""))
 		default:
 			break;
 		}

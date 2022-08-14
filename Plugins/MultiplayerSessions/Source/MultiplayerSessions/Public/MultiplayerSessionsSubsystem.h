@@ -37,7 +37,7 @@ public:
 
 	// 外部调用事件
 	void CreateSession();
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable)// todo: 删除UFUNCTION(BlueprintCallable)
 	void StartSession();
 	void DestroySession();
 	void FindSessions(int32 MaxSearchResults);
@@ -65,6 +65,7 @@ private:
 	IOnlineSessionPtr OnlineSessionInterface;
 	TSharedPtr<FOnlineSessionSettings> OnlineSessionSettings;
 	TSharedPtr<FOnlineSessionSearch> OnlineSessionSearch;
+	bool bCreateSessionAfterDestroyed{ false };
 
 	// 需要添加到Session代理列表的代理和其句柄
 	FOnCreateSessionCompleteDelegate CreateSessionCompleteDelegate;

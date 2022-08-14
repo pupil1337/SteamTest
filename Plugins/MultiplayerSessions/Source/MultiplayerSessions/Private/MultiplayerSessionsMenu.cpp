@@ -90,6 +90,7 @@ void UMultiplayerSessionsMenu::TearDownMenu() const
 
 void UMultiplayerSessionsMenu::OnHostButtonClicked()
 {
+	Button_Host->SetIsEnabled(false);
 	if (MultiplayerSessionsSubsystem)
 	{
 		MultiplayerSessionsSubsystem->CreateSession();
@@ -98,6 +99,7 @@ void UMultiplayerSessionsMenu::OnHostButtonClicked()
 
 void UMultiplayerSessionsMenu::OnJoinButtonClicked()
 {
+	Button_Join->SetIsEnabled(false);
 	if (MultiplayerSessionsSubsystem)
 	{
 		MultiplayerSessionsSubsystem->FindSessions(10000);
@@ -116,6 +118,10 @@ void UMultiplayerSessionsMenu::OnCreateSessionComplete(bool bWasSuccessful)
 			World->ServerTravel("/MultiplayerSessions/MultiplayerSessionsMap_Lobby?listen");
 		}
 	}
+	else
+	{
+		Button_Host->SetIsEnabled(true);
+	}
 }
 
 void UMultiplayerSessionsMenu::OnStartSessionComplete(bool bWasSuccessful)
@@ -128,9 +134,10 @@ void UMultiplayerSessionsMenu::OnDestroySessionComplete(bool bWasSuccessful)
 
 void UMultiplayerSessionsMenu::OnFindSessionsComplete(const TArray<FOnlineSessionSearchResult>& Results, bool bWasSuccessful)
 {
-	if (bWasSuccessful)
+	ScreenLog(FString::Printf(TEXT("FindSessions Num: %d"), Results.Num()))
+	
+	if (bWasSuccessful && Results.Num() > 0)
 	{
-		ScreenLog(FString(TEXT("FindSessions Num: %d, we only join PupilTest"), Results.Num()))
 		if (MultiplayerSessionsSubsystem)
 		{
 			for (const FOnlineSessionSearchResult& Result: Results)
@@ -140,6 +147,7 @@ void UMultiplayerSessionsMenu::OnFindSessionsComplete(const TArray<FOnlineSessio
 				Result.Session.SessionSettings.Get(FName("MatchType"), MatchType);
 				if (MatchType == "PupilTest")
 				{
+					ScreenLog(FString(TEXT("Join the First PupilTest")))
 					MultiplayerSessionsSubsystem->JoinSession(Result);
 					return;
 				}
@@ -148,7 +156,7 @@ void UMultiplayerSessionsMenu::OnFindSessionsComplete(const TArray<FOnlineSessio
 	}
 	else
 	{
-		ScreenLog(FString("FindSessions Failed!"))
+		Button_Join->SetIsEnabled(true);
 	}
 }
 
@@ -164,5 +172,6 @@ void UMultiplayerSessionsMenu::OnJoinSessionComplete(EOnJoinSessionCompleteResul
 	else
 	{
 		ScreenLog(FString(TEXT("JoinSession Failed! -- %d"), static_cast<uint32>(Result)))
+		Button_Join->SetIsEnabled(true);
 	}
 }
