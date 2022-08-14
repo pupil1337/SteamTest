@@ -25,6 +25,8 @@ class MULTIPLAYERSESSIONS_API UMultiplayerSessionsMenu : public UUserWidget
 
 public:
 	virtual bool Initialize() override;
+
+protected:
 	virtual void OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld) override;
 
 private:
@@ -36,6 +38,8 @@ private:
 	void OnHostButtonClicked();
 	UFUNCTION()
 	void OnJoinButtonClicked();
+
+	void OnCreateSessionComplete(FName SessionName, bool bWasSuccessful);
 
 	UPROPERTY()
 	UMultiplayerSessionsSubsystem* MultiplayerSessionsSubsystem;

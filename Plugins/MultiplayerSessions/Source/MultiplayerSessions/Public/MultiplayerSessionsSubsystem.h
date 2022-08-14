@@ -40,7 +40,7 @@ public:
 
 protected:
 	// Session事件的回调函数
-	void OnCreateSessionComplete(FName SessionName, bool bWasSuccessful) const;
+	void OnCreateSessionComplete(FName SessionName, bool bWasSuccessful);
 	void OnStartSessionComplete(FName SessionName, bool bWasSuccessful) const;
 	void OnDestroySessionComplete(FName SessionName, bool bWasSuccessful) const;
 	void OnFindSessionsComplete(bool bWasSuccessful) const;

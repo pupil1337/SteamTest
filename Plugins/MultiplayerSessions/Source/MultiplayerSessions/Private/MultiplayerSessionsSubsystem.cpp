@@ -54,10 +54,13 @@ void UMultiplayerSessionsSubsystem::CreateSession()
 		OnlineSessionSettings->bAllowJoinViaPresence = true;
 		OnlineSessionSettings->bUsesPresence = true;
 		OnlineSessionSettings->bShouldAdvertise = true;
+		OnlineSessionSettings->bUseLobbiesIfAvailable = true;
 		OnlineSessionSettings->Set(FName("MatchType"), FString("PupilTest"), EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
 		if (!OnlineSessionInterface->CreateSession(*GetWorld()->GetFirstLocalPlayerFromController()->GetPreferredUniqueNetId(), NAME_GameSession, *OnlineSessionSettings))
 		{
 			OnlineSessionInterface->ClearOnCreateSessionCompleteDelegate_Handle(CreateSessionCompleteDelegateHandle);
+
+			MultiplayerSessionsOnCreateSessionComplete.Broadcast(NAME_GameSession, false);
 		}
 	}
 }
@@ -80,8 +83,13 @@ void UMultiplayerSessionsSubsystem::JoinSession(const FOnlineSessionSearchResult
 
 /* --protected-- ========================================================================*/
 
-void UMultiplayerSessionsSubsystem::OnCreateSessionComplete(FName SessionName, bool bWasSuccessful) const
+void UMultiplayerSessionsSubsystem::OnCreateSessionComplete(FName SessionName, bool bWasSuccessful)
 {
+	if (OnlineSessionInterface)
+	{
+		OnlineSessionInterface->ClearOnCreateSessionCompleteDelegate_Handle(CreateSessionCompleteDelegateHandle);
+	}
+	
 	MultiplayerSessionsOnCreateSessionComplete.Broadcast(SessionName, bWasSuccessful);
 }
 

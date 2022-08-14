@@ -62,6 +62,11 @@ void UMultiplayerSessionsMenu::SetUpMenu()
 	{
 		MultiplayerSessionsSubsystem = GameInstance->GetSubsystem<UMultiplayerSessionsSubsystem>();
 	}
+
+	if (MultiplayerSessionsSubsystem)
+	{
+		MultiplayerSessionsSubsystem->MultiplayerSessionsOnCreateSessionComplete.AddUObject(this, &ThisClass::OnCreateSessionComplete);
+	}
 }
 
 void UMultiplayerSessionsMenu::TearDownMenu()
@@ -83,15 +88,31 @@ void UMultiplayerSessionsMenu::OnHostButtonClicked()
 	if (MultiplayerSessionsSubsystem)
 	{
 		MultiplayerSessionsSubsystem->CreateSession();
-
-		if (UWorld* World = GetWorld())
-		{
-			World->ServerTravel("/MultiplayerSessions/MultiplayerSessionsMap_Lobby?listen");
-		}
 	}
 }
 
 void UMultiplayerSessionsMenu::OnJoinButtonClicked()
 {
 	
+}
+
+void UMultiplayerSessionsMenu::OnCreateSessionComplete(FName SessionName, bool bWasSuccessful)
+{
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			15.0f,
+			FColor::Blue,
+			FString::Printf(TEXT("Create Success: %hs, SessionName: %s"), bWasSuccessful ? "true" : "false", *SessionName.ToString())
+		);
+	}
+
+	if (bWasSuccessful)
+	{
+		if (UWorld* World = GetWorld())
+		{
+			World->ServerTravel("/MultiplayerSessions/MultiplayerSessionsMap_Lobby?listen");
+		}
+	}
 }
