@@ -1,5 +1,5 @@
 # SteamTest
-UE5 Connect to Stream by OnlineSubsystemSteam
+UE5 Connect to Steam by OnlineSubsystem
 
 # What It Is?
 ### MultiplayerSessions -- Handing online multiplayer session.
@@ -16,6 +16,7 @@ UE5 Connect to Stream by OnlineSubsystemSteam
 
     [OnlineSubsystemSteam]
     bEnabled=true
+    ; Your AppId
     SteamDevAppId=480
 
     ; If using Sessions
