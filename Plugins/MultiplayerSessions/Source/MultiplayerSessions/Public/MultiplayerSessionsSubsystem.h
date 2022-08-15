@@ -37,7 +37,7 @@ public:
 
 	// 外部调用事件
 	void CreateSession();
-	UFUNCTION(BlueprintCallable)// todo: 删除UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = MultiplayerSessions)// todo: 删除UFUNCTION(BlueprintCallable)
 	void StartSession();
 	void DestroySession();
 	void FindSessions(int32 MaxSearchResults);
@@ -50,7 +50,7 @@ public:
 	FMultiplayerSessionsOnFindSessionsComplete MultiplayerSessionsOnFindSessionsComplete;
 	FMultiplayerSessionsOnJoinSessionComplete MultiplayerSessionsOnJoinSessionComplete;
 	
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = MultiplayerSessions)
 	void DebugMultiplayerSession(int Type);
 
 protected:
